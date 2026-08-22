@@ -175,14 +175,13 @@ async function resolveWithYtDlp(url, platform) {
             dumpSingleJson: true,
             noWarnings: true,
             noPlaylist: true,
-            skipDownload: true,
-            format: "best[ext=mp4]/best"
+            skipDownload: true
         };
         const { stdout } = ytDlp
             ? await ytDlp(url, options, { timeout: 30000 })
             : await execFileAsync(
                 process.env.YTDLP_PATH || "yt-dlp",
-                ["--dump-single-json", "--no-warnings", "--no-playlist", "--skip-download", "--format", options.format, url],
+                ["--dump-single-json", "--no-warnings", "--no-playlist", "--skip-download", url],
                 { timeout: 30000, maxBuffer: 2 * 1024 * 1024 }
             );
         const result = JSON.parse(stdout);
