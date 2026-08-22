@@ -4,6 +4,13 @@ const { execFile } = require("child_process");
 const { promisify } = require("util");
 const { Readable } = require("stream");
 const { pipeline } = require("stream/promises");
+let ytDlp;
+
+try {
+    ytDlp = require("yt-dlp-exec");
+} catch {
+    ytDlp = null;
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -163,19 +170,20 @@ async function resolveWithCobalt(url, platform) {
 
 
 async function resolveWithYtDlp(url, platform) {
+    if (!ytDlp) {
+        const resolverError = new Error("The free downloader engine is not installed on this server.");
+        resolverError.statusCode = 502;
+        throw resolverError;
+    }
+
     try {
-        const { stdout } = await execFileAsync(
-            process.env.YTDLP_PATH || "yt-dlp",
-            [
-                "--dump-single-json",
-                "--no-warnings",
-                "--no-playlist",
-                "--skip-download",
-                "--format", "best[ext=mp4]/best",
-                url
-            ],
-            { timeout: 30000, maxBuffer: 2 * 1024 * 1024 }
-        );
+        const { stdout } = await ytDlp(url, {
+            dumpSingleJson: true,
+            noWarnings: true,
+            noPlaylist: true,
+            skipDownload: true,
+            format: "best[ext=mp4]/best"
+        }, { timeout: 30000 });
         const result = JSON.parse(stdout);
         const mediaUrl = result.url || result.requested_downloads?.[0]?.url;
 
