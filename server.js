@@ -1,5 +1,7 @@
 const express = require("express");
 const crypto = require("crypto");
+const { execFile } = require("child_process");
+const { promisify } = require("util");
 const { Readable } = require("stream");
 const { pipeline } = require("stream/promises");
 
@@ -10,6 +12,18 @@ app.use(express.json({ limit: "10kb" }));
 app.use(express.static(__dirname));
 
 const TIKWM_API = "https://www.tikwm.com/api/";
+const COBALT_API_URL = process.env.COBALT_API_URL || "https://api.cobalt.tools/";
+const COBALT_API_KEY = process.env.COBALT_API_KEY || "";
+const execFileAsync = promisify(execFile);
+
+const SOCIAL_HOSTS = {
+    tiktok: ["tiktok.com"],
+    youtube: ["youtube.com", "youtu.be"],
+    instagram: ["instagram.com"],
+    facebook: ["facebook.com", "fb.watch"],
+    x: ["x.com", "twitter.com"],
+    threads: ["threads.net"]
+};
 
 const downloadTokens = new Map();
 const TOKEN_LIFETIME = 10 * 60 * 1000;
@@ -28,19 +42,28 @@ setInterval(() => {
 
 
 // Check whether the supplied URL is a TikTok URL
-function isTikTokUrl(value) {
+function getPlatform(value) {
     try {
         const url = new URL(value);
         const host = url.hostname.toLowerCase();
 
-        return (
-            host === "tiktok.com" ||
-            host.endsWith(".tiktok.com")
-        );
+        return Object.entries(SOCIAL_HOSTS).find(([, domains]) =>
+            domains.some((domain) => host === domain || host.endsWith(`.${domain}`))
+        )?.[0] || "";
 
     } catch {
-        return false;
+        return "";
     }
+}
+
+
+function isTikTokUrl(value) {
+    return getPlatform(value) === "tiktok";
+}
+
+
+function isSupportedSocialUrl(value) {
+    return Boolean(getPlatform(value));
 }
 
 
@@ -72,11 +95,117 @@ function createDownloadToken(fileUrl, filename) {
 }
 
 
+async function resolveWithCobalt(url, platform) {
+    let response;
+
+    try {
+        response = await fetch(COBALT_API_URL, {
+            method: "POST",
+            headers: {
+                Accept: "application/json",
+                "Content-Type": "application/json",
+                ...(COBALT_API_KEY ? { Authorization: `Api-Key ${COBALT_API_KEY}` } : {})
+            },
+            body: JSON.stringify({
+                url,
+                downloadMode: "auto",
+                videoQuality: "1080",
+                filenameStyle: "pretty"
+            }),
+            signal: AbortSignal.timeout(20000)
+        });
+    } catch (error) {
+        const upstreamError = new Error(`The ${platform} download service is unavailable.`);
+        upstreamError.statusCode = 502;
+        throw upstreamError;
+    }
+
+    let result;
+
+    try {
+        result = await response.json();
+    } catch {
+        const upstreamError = new Error("The download service returned an invalid response.");
+        upstreamError.statusCode = 502;
+        throw upstreamError;
+    }
+
+    if (!response.ok || result.status === "error") {
+        const message = result?.error?.code || `Unable to download from ${platform}.`;
+        const upstreamError = new Error(message);
+        upstreamError.statusCode = response.status === 429 ? 429 : 502;
+        throw upstreamError;
+    }
+
+    let media = [];
+
+    if (result.status === "picker") {
+        media = result.picker.filter((item) => item.type === "video" || item.type === "gif");
+    } else if (result.url) {
+        media = [{ url: result.url, type: "video" }];
+    } else if (Array.isArray(result.tunnel)) {
+        media = result.tunnel.map((url) => ({ url, type: "video" }));
+    }
+
+    const video = media.find((item) => /^https?:\/\//i.test(item.url));
+
+    if (!video) {
+        throw new Error(`No downloadable video was found on ${platform}.`);
+    }
+
+    return {
+        title: result.filename || `${platform[0].toUpperCase()}${platform.slice(1)} video`,
+        thumbnail_url: media.find((item) => item.thumb)?.thumb || "",
+        download_url: video.url,
+        download_url_hd: video.url
+    };
+}
+
+
+async function resolveWithYtDlp(url, platform) {
+    try {
+        const { stdout } = await execFileAsync(
+            process.env.YTDLP_PATH || "yt-dlp",
+            [
+                "--dump-single-json",
+                "--no-warnings",
+                "--no-playlist",
+                "--skip-download",
+                "--format", "best[ext=mp4]/best",
+                url
+            ],
+            { timeout: 30000, maxBuffer: 2 * 1024 * 1024 }
+        );
+        const result = JSON.parse(stdout);
+        const mediaUrl = result.url || result.requested_downloads?.[0]?.url;
+
+        if (!mediaUrl || !/^https?:\/\//i.test(mediaUrl)) {
+            throw new Error("No downloadable video was found.");
+        }
+
+        return {
+            title: result.title || `${platform[0].toUpperCase()}${platform.slice(1)} video`,
+            thumbnail_url: result.thumbnail || "",
+            download_url: mediaUrl,
+            download_url_hd: mediaUrl
+        };
+    } catch (error) {
+        const resolverError = new Error(
+            error.code === "ENOENT"
+                ? "The free downloader engine is not installed on this server."
+                : `Unable to download this ${platform} video.`
+        );
+        resolverError.statusCode = 502;
+        throw resolverError;
+    }
+}
+
+
 // Test server
 app.get("/api/test", (req, res) => {
     res.json({
         success: true,
-        message: "TikDrop server is working!"
+        message: "SocialDrop server is working!"
     });
 });
 
@@ -88,14 +217,40 @@ app.post("/api/download", async (req, res) => {
 
         const url = typeof req.body?.url === "string" ? req.body.url.trim() : "";
 
-        if (!url || !isTikTokUrl(url)) {
+        if (!url || !isSupportedSocialUrl(url)) {
             return res.status(400).json({
                 success: false,
-                error: "Please enter a valid TikTok URL."
+                error: "Please enter a supported TikTok, YouTube, Instagram, Facebook, X, or Threads URL."
             });
         }
 
-        console.log("Processing TikTok URL:", url);
+        const platform = getPlatform(url);
+        console.log(`Processing ${platform} URL:`, url);
+
+        if (!isTikTokUrl(url)) {
+            let media;
+
+            try {
+                media = await resolveWithYtDlp(url, platform);
+            } catch (ytDlpError) {
+                if (process.env.COBALT_API_URL) {
+                    media = await resolveWithCobalt(url, platform);
+                } else {
+                    throw ytDlpError;
+                }
+            }
+            const normalToken = createDownloadToken(media.download_url, "SocialDrop_Video.mp4");
+            const hdToken = createDownloadToken(media.download_url_hd, "SocialDrop_Video_HD.mp4");
+
+            return res.json({
+                success: true,
+                platform,
+                title: media.title,
+                thumbnail_url: media.thumbnail_url,
+                download_url: `/api/file/${normalToken}`,
+                download_url_hd: `/api/file/${hdToken}`
+            });
+        }
 
 
         let response;
@@ -188,6 +343,7 @@ app.post("/api/download", async (req, res) => {
 
         res.json({
             success: true,
+            platform,
 
             title:
                 video.title ||
@@ -391,7 +547,7 @@ app.listen(
     () => {
 
         console.log(
-            `TikDrop is running at http://localhost:${PORT}`
+            `SocialDrop is running at http://localhost:${PORT}`
         );
 
     }
