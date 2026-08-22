@@ -29,7 +29,7 @@ const SOCIAL_HOSTS = {
     instagram: ["instagram.com"],
     facebook: ["facebook.com", "fb.watch"],
     x: ["x.com", "twitter.com"],
-    threads: ["threads.net"]
+    threads: ["threads.net", "threads.com"]
 };
 
 const downloadTokens = new Map();
@@ -175,17 +175,21 @@ async function resolveWithYtDlp(url, platform) {
             dumpSingleJson: true,
             noWarnings: true,
             noPlaylist: true,
-            skipDownload: true
+            skipDownload: true,
+            format: "bestvideo*+bestaudio/best"
         };
         const { stdout } = ytDlp
             ? await ytDlp(url, options, { timeout: 30000 })
             : await execFileAsync(
                 process.env.YTDLP_PATH || "yt-dlp",
-                ["--dump-single-json", "--no-warnings", "--no-playlist", "--skip-download", url],
+                ["--dump-single-json", "--no-warnings", "--no-playlist", "--skip-download", "--extractor-args", "youtube:player_client=web_safari", url],
                 { timeout: 30000, maxBuffer: 2 * 1024 * 1024 }
             );
         const result = JSON.parse(stdout);
-        const mediaUrl = result.url || result.requested_downloads?.[0]?.url;
+        const mediaUrl = result.url ||
+            result.requested_downloads?.[0]?.url ||
+            result.requested_formats?.find((format) => format.url)?.url ||
+            result.formats?.find((format) => format.url)?.url;
 
         if (!mediaUrl || !/^https?:\/\//i.test(mediaUrl)) {
             throw new Error("No downloadable video was found.");
