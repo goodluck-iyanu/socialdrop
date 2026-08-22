@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://socialdrop.hoberg.co.ng/sitemap.xml

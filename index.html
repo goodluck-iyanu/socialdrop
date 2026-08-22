@@ -5,27 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- Primary SEO Meta Tags -->
-    <title>SocialDrop | Social Media Video Downloader | Hoberg Tools</title>
-    <meta name="title" content="SocialDrop | Social Media Video Downloader">
-    <meta name="description" content="Download videos from TikTok, YouTube, Instagram, Facebook, X, and Threads with SocialDrop. Fast, simple, and automatic.">
-    <meta name="keywords" content="social media downloader, TikTok downloader, YouTube downloader, Instagram downloader, Facebook downloader, X video downloader, Threads downloader">
+    <title>SocialDrop: Free TikTok, Instagram &amp; Facebook Video Downloader</title>
+    <meta name="title" content="SocialDrop: Free TikTok, Instagram & Facebook Video Downloader">
+    <meta name="description" content="SocialDrop is a fast, free social media video downloader for public TikTok, Instagram, and Facebook videos. Paste a link and download in seconds.">
+    <meta name="keywords" content="SocialDrop, TikTok video downloader, Instagram video downloader, Facebook video downloader, social media downloader, download public videos, free video downloader">
     <meta name="robots" content="index, follow">
     <meta name="author" content="Hoberg Digital Agency">
-    <link rel="canonical" href="https://hoberg.com.ng/tools/socialdrop">
+    <meta name="theme-color" content="#000000">
+    <link rel="canonical" href="https://socialdrop.hoberg.co.ng/">
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://hoberg.com.ng/tools/socialdrop">
-    <meta property="og:title" content="SocialDrop | Social Media Video Downloader">
-    <meta property="og:description" content="Download videos from your favorite social platforms quickly and easily.">
-    <meta property="og:image" content="https://hoberg.com.ng/assets/socialdrop-og-image.jpg">
+    <meta property="og:site_name" content="SocialDrop">
+    <meta property="og:url" content="https://socialdrop.hoberg.co.ng/">
+    <meta property="og:title" content="SocialDrop: Free Social Media Video Downloader">
+    <meta property="og:description" content="Download public TikTok, Instagram, and Facebook videos quickly with SocialDrop.">
+    <meta property="og:image" content="https://socialdrop.hoberg.co.ng/socialdrop-og-image.jpg">
+    <meta property="og:image:alt" content="SocialDrop social media video downloader">
+    <meta property="og:locale" content="en_US">
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="https://hoberg.com.ng/tools/socialdrop">
+    <meta property="twitter:url" content="https://socialdrop.hoberg.co.ng/">
     <meta property="twitter:title" content="SocialDrop | Download Social Videos">
     <meta property="twitter:description" content="Paste a link and SocialDrop automatically finds the best available video download.">
-    <meta property="twitter:image" content="https://hoberg.com.ng/assets/socialdrop-og-image.jpg">
+    <meta property="twitter:image" content="https://socialdrop.hoberg.co.ng/socialdrop-og-image.jpg">
 
     <!-- Favicon -->
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
@@ -42,14 +46,14 @@
       "@type": "WebApplication",
     "name": "SocialDrop",
     "alternateName": "Hoberg Social Media Downloader",
-    "url": "https://hoberg.com.ng/tools/socialdrop",
-    "description": "A free online web application to download supported social media videos.",
+    "url": "https://socialdrop.hoberg.co.ng/",
+    "description": "A fast, free online web application to download public TikTok, Instagram, and Facebook videos.",
       "applicationCategory": "MultimediaApplication",
       "operatingSystem": "All",
       "creator": {
         "@type": "Organization",
         "name": "Hoberg Digital Agency",
-        "url": "https://hoberg.com.ng"
+        "url": "https://hoberg.com.ng/"
       },
       "offers": {
         "@type": "Offer",
@@ -377,7 +381,7 @@
                 </div>
                 
                 <h1>Download social videos</h1>
-                <p>Paste a link from TikTok, YouTube, Instagram, Facebook, X, or Threads. SocialDrop identifies the platform automatically.</p>
+                <p>Paste a link from TikTok, Instagram, or Facebook. SocialDrop identifies the platform automatically.</p>
                 
                 <!-- Search Form -->
                 <form id="downloadForm" class="download-box">
@@ -525,8 +529,7 @@
             const form = document.getElementById('downloadForm');
             const urlInput = document.getElementById('tiktokUrl');
             const supportedDomains = [
-                'tiktok.com', 'youtube.com', 'youtu.be', 'instagram.com',
-                'facebook.com', 'fb.watch', 'x.com', 'twitter.com', 'threads.net'
+                'tiktok.com', 'instagram.com', 'facebook.com', 'fb.watch'
             ];
             const pasteBtn = document.getElementById('pasteBtn');
             const submitBtn = document.getElementById('submitBtn');
@@ -603,7 +606,7 @@
         const host = parsedUrl.hostname.toLowerCase();
 
         if (!supportedDomains.some((domain) => host === domain || host.endsWith(`.${domain}`))) {
-            throw new Error('Please enter a TikTok, YouTube, Instagram, Facebook, X, or Threads URL.');
+            throw new Error('Please enter a TikTok, Instagram, or Facebook video URL.');
         }
     } catch (error) {
         showStatus(error.message || 'Please enter a supported social media URL.', true);
