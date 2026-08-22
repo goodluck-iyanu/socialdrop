@@ -550,14 +550,11 @@ app.get("/api/file/:token", async (req, res) => {
 });
 
 
-// Start server
-app.listen(
-    PORT,
-    () => {
+// Vercel uses the exported Express app; local development starts its own port.
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`SocialDrop is running at http://localhost:${PORT}`);
+    });
+}
 
-        console.log(
-            `SocialDrop is running at http://localhost:${PORT}`
-        );
-
-    }
-);
+module.exports = app;
