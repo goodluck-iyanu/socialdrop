@@ -137,6 +137,12 @@ async function resolveWithCobalt(url, platform) {
 }
 
 async function resolveWithYtDlp(url, platform) {
+    if (process.env.VERCEL) {
+        const resolverError = new Error("This platform downloader requires a media server; Vercel cannot run yt-dlp directly.");
+        resolverError.statusCode = 502;
+        throw resolverError;
+    }
+
     try {
         const args = ["--dump-single-json", "--no-warnings", "--no-playlist", "--skip-download"];
         const { stdout } = ytDlp && process.platform !== "win32"
