@@ -1,5 +1,6 @@
 const express = require("express");
 const crypto = require("crypto");
+const path = require("path");
 const { execFile } = require("child_process");
 const { promisify } = require("util");
 const { Readable } = require("stream");
@@ -22,6 +23,9 @@ const TIKWM_API = "https://www.tikwm.com/api/";
 const COBALT_API_URL = process.env.COBALT_API_URL || "";
 const COBALT_API_KEY = process.env.COBALT_API_KEY || "";
 const execFileAsync = promisify(execFile);
+const systemYtDlp = process.env.YTDLP_PATH || (process.platform === "win32"
+    ? path.join(process.env.LOCALAPPDATA || "", "Programs", "Python", "Python314", "Scripts", "yt-dlp.exe")
+    : "yt-dlp");
 
 const SOCIAL_HOSTS = {
     tiktok: ["tiktok.com"],
@@ -135,9 +139,9 @@ async function resolveWithCobalt(url, platform) {
 async function resolveWithYtDlp(url, platform) {
     try {
         const args = ["--dump-single-json", "--no-warnings", "--no-playlist", "--skip-download"];
-        const { stdout } = ytDlp
+        const { stdout } = ytDlp && process.platform !== "win32"
             ? await ytDlp(url, { dumpSingleJson: true, noWarnings: true, noPlaylist: true, skipDownload: true }, { timeout: 30000 })
-            : await execFileAsync(process.env.YTDLP_PATH || "yt-dlp", [...args, url], { timeout: 30000, maxBuffer: 2 * 1024 * 1024 });
+            : await execFileAsync(systemYtDlp, [...args, url], { timeout: 30000, maxBuffer: 2 * 1024 * 1024 });
         const result = JSON.parse(stdout);
         const mediaUrl = result.url || result.requested_downloads?.[0]?.url || result.requested_formats?.find((format) => format.url)?.url || result.formats?.find((format) => format.url)?.url;
 
