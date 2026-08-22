@@ -19,17 +19,14 @@ app.use(express.json({ limit: "10kb" }));
 app.use(express.static(__dirname));
 
 const TIKWM_API = "https://www.tikwm.com/api/";
-const COBALT_API_URL = process.env.COBALT_API_URL || "https://api.cobalt.tools/";
+const COBALT_API_URL = process.env.COBALT_API_URL || "";
 const COBALT_API_KEY = process.env.COBALT_API_KEY || "";
 const execFileAsync = promisify(execFile);
 
 const SOCIAL_HOSTS = {
     tiktok: ["tiktok.com"],
-    youtube: ["youtube.com", "youtu.be"],
     instagram: ["instagram.com"],
-    facebook: ["facebook.com", "fb.watch"],
-    x: ["x.com", "twitter.com"],
-    threads: ["threads.net", "threads.com"]
+    facebook: ["facebook.com", "fb.watch"]
 };
 
 const downloadTokens = new Map();
@@ -232,7 +229,7 @@ app.post("/api/download", async (req, res) => {
         if (!url || !isSupportedSocialUrl(url)) {
             return res.status(400).json({
                 success: false,
-                error: "Please enter a supported TikTok, YouTube, Instagram, Facebook, X, or Threads URL."
+                error: "Please enter a TikTok, Instagram, or Facebook video URL."
             });
         }
 
