@@ -1,0 +1,17 @@
+{
+  "name": "SocialDrop - Social Media Video Downloader",
+  "short_name": "SocialDrop",
+  "description": "Download public TikTok, Instagram, and Facebook videos quickly.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
